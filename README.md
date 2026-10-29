@@ -1,51 +1,36 @@
 # Elemental Spotlight
 
-Hovering a block in the CMS scrolls the preview to it and lights it up, so an
-author can see which block they are about to edit before they open it.
+When an author hovers a block in the Silverstripe CMS, the preview panel
+scrolls to that block and highlights it, so they can see which block they're
+about to edit.
 
-Nothing to configure. Install it, build the assets, and the block list behaves
-this way on every page with a preview open.
+Works with [Silverstripe Elemental](https://github.com/silverstripe/silverstripe-elemental) 6.2
+and the CMS's own preview panel. Nothing to configure, and nothing is added to
+the live site for visitors.
 
-## How the two halves talk
+## Install
 
-The CMS and the page it is previewing are two windows, so this is two scripts
-and a `postMessage` between them.
+```bash
+composer require toastnz/elemental-spotlight
+vendor/bin/sake flush
+```
 
-**In the CMS**, `client/src/js/cms.js` transforms elemental's `ElementList`
-through `Injector`. The list is the right place rather than the individual
-block: it is handed every block's data, which is the only way to turn the
-`element-61` in the DOM into the anchor the page rendered that block with.
+Until the module is on Packagist, add its repository to your `composer.json` first:
 
-It adds nothing to the DOM. One listener on the document reads which block the
-pointer is over, which leaves elemental's own markup - and its drag and drop,
-which is particular about the shape of the list - exactly as it was.
+```json
+"repositories": [
+    { "type": "vcs", "url": "git@github.com:toastnz/elemental-spotlight.git" }
+]
+```
 
-**In the page**, `client/src/js/preview.js` listens for those messages, scrolls
-to the block and marks it. It only runs inside a frame, and it checks both the
-origin of the message and that the message is one of ours before acting on it: a
-page in a frame can be framed by anybody.
+Open a page with blocks in the CMS with the preview panel showing, and hover a
+block in the list.
 
-## Where the anchor comes from
+## Styling the highlight
 
-The CMS knows a block by its id and the page knows it by its anchor, which
-elemental builds from the block's title and renders as the block's `id`
-attribute. Neither can work out the other, so `ElementAnchorExtension` puts the
-anchor into the block schema - elemental's own channel to the editor - and the
-CMS ends up with both.
-
-That is also why nothing here needs a template of its own. It scrolls to the
-anchor elemental already renders, so a project that has replaced
-`ElementHolder.ss` is no different.
-
-## What the highlight looks like
-
-The block is given focus as well as being marked, so on a site that styles
-`:focus-visible` the marker is the site's own, in the site's own colours.
-
-The module carries a plain outline of its own for a site that doesn't. It is
-deliberately a floor and not a house style: one class selector loses to any
-`:focus-visible` rule, which is the way round it should be. Two custom
-properties are there if you want to keep it but change it:
+The block is given a plain outline and keyboard focus. If your site styles
+`:focus-visible`, that is what shows. To keep the built-in outline but change
+it:
 
 ```css
 :root {
@@ -54,46 +39,38 @@ properties are there if you want to keep it but change it:
 }
 ```
 
-Focus outlives the pointer, so leaving the list drops the focus as well as the
-mark - otherwise the block an author hovered a minute ago would still be ringed.
-The page is left where it is rather than scrolled back, so an author can hover a
-block and then go and look at it.
+Leaving the list removes the highlight but leaves the page where it is, so an
+author can hover a block and then go and look at it.
 
-## Weight on the site
+## How it works
 
-None. The preview script is required only on a request the CMS makes for its
-preview, which it marks with `?CMSPreview=1`, so a visitor never downloads it.
-It brings its own styles rather than requiring a stylesheet, so nothing here has
-to fit in with how a project loads its CSS.
+The CMS and the preview are two windows, so there are two small scripts that
+talk with `postMessage`.
 
-## Installation
+- **In the CMS**, the block list tells the preview which block the pointer is
+  over. It needs the block's anchor, which `ElementAnchorExtension` adds to the
+  block data elemental already sends to the editor.
+- **In the preview**, a script scrolls to that anchor and marks the block. It is
+  only requested on a `?CMSPreview=1` page, so a visitor never downloads it,
+  and it ignores any message that is not from its own origin and in the expected shape.
 
-```bash
-composer require toastnz/elemental-spotlight
-vendor/bin/sake flush
-```
+It scrolls to the anchor elemental already renders as the block's `id`, so it
+works with any block template.
 
-## Local development
-
-Installed from a composer `path` repository, the module's `client/dist` has to
-be exposed from the project rather than by the module - see the same section in
-the `toastnz/elemental-flavours` README for why:
-
-```json
-"extra": {
-    "expose": [
-        "vendor/toastnz/elemental-spotlight/client/dist"
-    ]
-}
-```
-
-To change the scripts:
+## Developing
 
 ```bash
 npm install
-npm run build    # lint, then a production build into client/dist
+npm run build    # lint, then build into client/dist
 npm run watch
 ```
 
-`client/dist` is committed, so a project installing the module never needs
-node.
+`client/dist` is committed, so installing the module needs no node. When
+developing it as a composer `path` repository, expose its assets from the
+project:
+
+```json
+"extra": {
+    "expose": ["vendor/toastnz/elemental-spotlight/client/dist"]
+}
+```
