@@ -1,0 +1,16 @@
+---
+Name: elemental-spotlight
+After:
+  - '#elemental'
+---
+DNADesign\Elemental\Models\BaseElement:
+  extensions:
+    - Toast\Spotlight\Extensions\ElementAnchorExtension
+
+SilverStripe\CMS\Controllers\ContentController:
+  extensions:
+    - Toast\Spotlight\Extensions\PreviewRequirementsExtension
+
+SilverStripe\Admin\LeftAndMain:
+  extra_requirements_javascript:
+    - 'toastnz/elemental-spotlight:client/dist/js/cms.js'
